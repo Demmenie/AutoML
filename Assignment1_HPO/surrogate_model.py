@@ -41,10 +41,25 @@ class SurrogateModel:
         
         self.encoder.fit(xCatFit)
         
-        xCat = pd.concat([pd.Series(x.iloc[:, 0]), x.iloc[:, 2:8], pd.Series(x.iloc[:, 9])], axis=1)
+        xCat = pd.concat([pd.Series(x["metric"]),
+            x.loc(axis=1)["pp@cat_encoder",
+                "pp@decomposition",
+                "pp@featuregen",
+                "pp@featureselector",
+                "pp@scaler",
+                "weights"],
+            pd.Series(x["pp@kernel_pca_kernel"])],
+            axis=1)
         xCat = xCat.apply(self.encoder.transform)
 
-        xNum = pd.concat([pd.Series(x.iloc[:, 1]), pd.Series(x.iloc[:, 8]), x.iloc[:, 10:]], axis=1)
+        xNum = pd.concat([pd.Series(x["n_neighbors"]),
+            pd.Series(x["p"]),
+            x.loc(axis=1)["pp@kernel_pca_n_components",
+                "pp@poly_degree",
+                "pp@selectp_percentile",
+                "pp@std_with_std",
+                "anchor_size"]],
+            axis=1)
         x = pd.concat([pd.DataFrame(xNum), pd.DataFrame(xCat)], axis=1).values
 
 
@@ -71,9 +86,7 @@ class SurrogateModel:
         :return: float, the predicted performance of theta new (which can be considered the ground truth)
         """
         x = pd.DataFrame(theta_new, columns=self.df.columns[:-1], index=[0])
-        x.infer_objects(copy=False)
 
-        #print(x)
         xCat = pd.concat([pd.Series(x.iloc[:, 0]), x.iloc[:, 2:8], pd.Series(x.iloc[:, 9])], axis=1)
         xCat = xCat.apply(self.encoder.transform)
 
@@ -82,4 +95,6 @@ class SurrogateModel:
 
         x = np.array(x)
 
-        return self.model.predict(x)
+        pred = self.model.predict(x)
+
+        return pred
