@@ -9,10 +9,8 @@ from succesive_halving import SuccesiveHalving
 
 
 def df_to_typed_list(df: pd.DataFrame) -> list:
-    # Extract the 'score' column name (last column)
     score_column = df.columns[-1]
     
-    # Create the list of tuples (dict, float)
     result = [
         (row.drop(score_column).to_dict(), row[score_column]) for _, row in df.iterrows()
     ]
@@ -31,7 +29,7 @@ def parse_args():
 
 def generate_configs(config_space, surrogate_model, with_performance, num_configs=10):
     configs = []
-    # Generate random configurations
+    
     for _ in range(num_configs):
         config = dict(config_space.sample_configuration())  
         if with_performance:     
@@ -54,28 +52,20 @@ def run(args):
         surrogate_model_external = SurrogateModel(config_space)
         surrogate_model_external.fit(df)
 
-        # initial_configs = generate_configs(config_space, surrogate_model_external, with_performance=False)
-        initial_anchor_size = 100
+        initial_anchor_size = 0
         max_anchor_size = args.max_anchor_size
         reduction_factor = 2
         succesive_halving = SuccesiveHalving(surrogate_model_external, initial_anchor_size, max_anchor_size, reduction_factor) 
 
-        sample_configs = config_space.sample_configuration(size=100)
+        sample_configs = config_space.sample_configuration(size=16)
         succesive_halving.config_queue = sample_configs
-        while succesive_halving.anchor_size <= max_anchor_size:
+        succesive_halving.initialize()
+        succesive_halving.update_queue(sample_configs)
+        while succesive_halving.anchor_size <= max_anchor_size:    
             best_configs = succesive_halving.select_best_configurations()
             succesive_halving.update_queue(best_configs)    
-                
-            
-
-    # plt.figure(figsize=(10, 6))
-    # plt.plot(range(len(error_list)), error_list, label='Best Performance Over Time', color='blue')
-    # plt.xlabel('Iteration')
-    # plt.ylabel('Best Performance')
-    # plt.title('Best Performance Over Iterations')
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+        
+        succesive_halving.plot()
 
 
 if __name__ == '__main__':
