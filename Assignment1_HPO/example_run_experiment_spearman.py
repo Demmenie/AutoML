@@ -34,18 +34,18 @@ def run(args):
     }
 
     total = 0
+    count = 0
     for row in test.iterrows():
-        row = pd.DataFrame(row)
-
-        act = row.iloc[0][-1]
+        count += 1
+        row = pd.DataFrame(row).iloc[-1].iloc[-1]
+    
+        act = row.loc["score"]
         pred = surrogate_model.predict(row)
 
-        print(act)
+        diff = act - pred[0]
+        total += (diff**2)
 
-        #diff = act - pred[0]
-        total += diff^2
-
-    spearman = (6*total) / (len(test.iterrows() * (len(test.iterrows())^2 - 1)))
+    spearman = (6*total) / (count * (count**2 - 1))
 
 
     for idx in range(args.num_iterations):
