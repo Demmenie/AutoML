@@ -28,7 +28,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def generate_configs(config_space, surrogate_model, with_performance, num_configs=10):
+def generate_configs(config_space, surrogate_model, with_performance, num_configs=5):
     configs = []
     # Generate random configurations
     for _ in range(num_configs):
@@ -54,19 +54,25 @@ def run(args):
     surrogate_model_internal.initialize(capital_phi)
     error_list = []
 
-    for _ in range(20):
+    for _ in range(300):
         surrogate_model_internal.fit_model()
-        sample_config = config_space.sample_configuration(size=5)
+        sample_config = config_space.sample_configuration(size=5) 
+
+        if not isinstance(sample_config, list):
+            sample_config = [sample_config]    
+
         sample_config = pd.DataFrame(sample_config)
         sample_config['anchor_size'] = args.max_anchor_size
         
         surrogate_model_internal.theta = sample_config
+        
         theta_new = dict(surrogate_model_internal.select_configuration())
         theta_new['anchor_size'] = args.max_anchor_size
         performance = surrogate_model_external.predict(theta_new)
+        
         surrogate_model_internal.update_runs((theta_new, performance))
-        error_list.append(surrogate_model_internal.theta_inc_performance)
-        print(surrogate_model_internal.theta_inc_performance)
+        result = float(surrogate_model_internal.theta_inc_performance)
+        error_list.append(result)
 
     plt.figure(figsize=(10, 6))
     plt.plot(range(len(error_list)), error_list, label='Best Performance Over Time', color='blue')

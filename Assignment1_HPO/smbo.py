@@ -82,7 +82,8 @@ class SequentialModelBasedOptimization(object):
         self.theta = self.process_config_structure(self.theta)
         ei_list = self.expected_improvement(self.model_pipeline, self.theta_inc_performance, self.theta)
         best_index = np.argmax(ei_list) 
-        best_config = self.R[best_index][0]
+
+        best_config = self.theta.iloc[best_index].to_dict()
 
         return best_config
     
@@ -100,11 +101,10 @@ class SequentialModelBasedOptimization(object):
         configuration
         """
         mu, sigma = model_pipeline.predict(theta, return_std=True)
-        temp = (f_star*-mu)
-        epsilon = 1e-8  # A small value to avoid division by zero
-        ei = temp * norm.cdf(temp / (sigma + epsilon)) + norm.pdf(temp / (sigma + epsilon))
-        ei = np.maximum(ei, 0)
-
+        temp = (f_star-mu)
+        ei = temp * norm.cdf(temp / sigma) + sigma*norm.pdf(temp / sigma)
+        
+        print(f"ei: {ei}")
         return ei
 
     def update_runs(self, run: typing.Tuple[typing.Dict, float]):
@@ -115,27 +115,24 @@ class SequentialModelBasedOptimization(object):
         :param run: A tuple (configuration, performance) where performance is error rate
         """
         self.R.append(run)
-        if run[1] < self.theta_inc_performance:
+        if run[1] < self.theta_inc_performance:            
             self.theta_inc = run[0]
             self.theta_inc_performance = run[1]
 
     def process_config_structure(self, configs):
         value_list_cat = []
         value_list_num = []
-        # print(configs)
         for elem in configs:
-            # print(f"elem type: {type(elem)} - elem: {elem}")
             values_cat = [elem[key] if key in elem else 'none' for key in self.categorical]
             value_list_cat.append(values_cat)      
             values_num = [elem[key] if key in elem else np.nan for key in list(set(self.hp) - set(self.categorical)) ]
             value_list_num.append(values_num)
-        # Convert to DataFrame
+            
         df_num = pd.DataFrame(value_list_num, columns=list(set(self.hp) - set(self.categorical)))
         df_cat = pd.DataFrame(value_list_cat, columns=self.categorical)
-        df_num.fillna(0, inplace=True)  # For numerical features
-        df_cat.fillna('none', inplace=True)  # For categorical features
+        df_num.fillna(0, inplace=True)  
+        df_cat.fillna('none', inplace=True) 
         
-        # Merge the two DataFrames into a single DataFrame
         df_full = pd.concat([df_num, df_cat], axis=1)
-
+        
         return df_full
