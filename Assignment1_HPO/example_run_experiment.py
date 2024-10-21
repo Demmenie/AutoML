@@ -2,8 +2,11 @@ import argparse
 import ConfigSpace
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from random_search import RandomSearch
 from surrogate_model import SurrogateModel
+from sklearn.model_selection import train_test_split
+from sklearn.isotonic import check_increasing
 
 
 def parse_args():
@@ -21,11 +24,29 @@ def run(args):
     config_space = ConfigSpace.ConfigurationSpace.from_json(args.config_space_file)
     random_search = RandomSearch(config_space)
     df = pd.read_csv(args.configurations_performance_file)
+
+    train, test = train_test_split(df)
+
     surrogate_model = SurrogateModel(config_space)
-    surrogate_model.fit(df)
+    surrogate_model.fit(train)
     results = {
-        'random_search': [1.0]
+        'random_search': [0.16]
     }
+
+    total = 0
+    for row in test.iterrows():
+        row = pd.DataFrame(row)
+
+        act = row.iloc[0][-1]
+        pred = surrogate_model.predict(row)
+
+        print(act)
+
+        #diff = act - pred[0]
+        total += diff^2
+
+    spearman = (6*total) / (len(test.iterrows() * (len(test.iterrows())^2 - 1)))
+
 
     for idx in range(args.num_iterations):
         theta_new = dict(random_search.select_configuration())
@@ -34,9 +55,12 @@ def run(args):
         # ensure to only record improvements
         results['random_search'].append(float(min(results['random_search'][-1], performance)))
         random_search.update_runs((theta_new, performance))
-
-    print(results['random_search'][-1])
+       
+    
+    print("Spearman Correlation:", spearman)
     plt.plot(range(len(results['random_search'])), results['random_search'])
+    plt.ylabel('Error')
+    plt.xlabel('Iterations')
     plt.yscale('log')
     plt.show()
 
