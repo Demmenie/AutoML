@@ -111,4 +111,4 @@ class SurrogateModel:
 
         pred = self.model.predict(x)
 
-        return pred
+        return pred[0]
