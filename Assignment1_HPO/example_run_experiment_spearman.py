@@ -42,7 +42,7 @@ def run(args):
         act = row.loc["score"]
         pred = surrogate_model.predict(row)
 
-        diff = act - pred[0]
+        diff = act - pred
         total += (diff**2)
 
     spearman = 1 - (6*total) / (count * (count**2 - 1))
