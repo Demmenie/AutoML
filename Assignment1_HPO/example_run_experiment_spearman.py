@@ -25,7 +25,7 @@ def run(args):
     random_search = RandomSearch(config_space)
     df = pd.read_csv(args.configurations_performance_file)
 
-    train, test = train_test_split(df)
+    train, test = train_test_split(df, test_size=0.15)
 
     surrogate_model = SurrogateModel(config_space)
     surrogate_model.fit(train)
@@ -45,7 +45,7 @@ def run(args):
         diff = act - pred[0]
         total += (diff**2)
 
-    spearman = (6*total) / (count * (count**2 - 1))
+    spearman = 1 - (6*total) / (count * (count**2 - 1))
 
 
     for idx in range(args.num_iterations):
