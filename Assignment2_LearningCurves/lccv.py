@@ -1,5 +1,7 @@
 import logging
 import numpy as np
+import pandas as pd
+import scipy.stats as st
 import typing
 
 from vertical_model_evaluator import VerticalModelEvaluator
@@ -26,21 +28,40 @@ class LCCV(VerticalModelEvaluator):
         :return: The optimistic extrapolation of the performance
         """
         
-        mean = (current_performance + previous_performance) / 2
-        sd = ((current_performance - mean)**2 + (previous_performance - mean)**2) / 2
+        # Mean of the performance values
+        mean = (previous_performance + current_performance) / 2
+        
+        # Standard deviation
+        sd = np.std([previous_performance, current_performance])
 
-        C_i = (np.pi * sd) * np.exp(-0.5*((-mean)/sd)**2)
+        # Making sure that we don't multiply by zero
+        if sd == 0.0:
+            sd = 0.00000000000000000001
+        
+        # sd = (abs(current_performance - mean)**2 +
+        #       abs(previous_performance - mean)**2) / 2
 
-        supC_t1 = previous_performance + C_i
-        infC_t = current_performance - C_i
+        # Confidence intervals for the performance
+        C_i = st.norm.interval([previous_performance, current_performance],
+                               loc=mean,
+                               scale=sd)
+        # C_i = (np.pi * sd) * np.exp(-0.5*((-mean)/sd)**2)
 
-        sub = ((supC_t1 - infC_t) / (previous_anchor - current_anchor))
-        optPerf = infC_t - (target_anchor - current_anchor) * sub
-
+        # supC_t1 = previous_performance + C_i
+        # infC_t = current_performance - C_i
+        
+        # LCCV calculation: infimum of Ct - (sT - st)(supremum of Ct-1 - infimum of Ct /
+        # st-1 - st)
+        sub = ((max(C_i[0]) - min(C_i[1])) / (previous_anchor - current_anchor))
+        optPerf = min(C_i[1]) - (target_anchor - current_anchor) * sub
+        
+        # print("sd:", sd)
+        # print(optPerf)
         return optPerf
     
 
-    def evaluate_model(self, best_so_far: typing.Optional[float], configuration: typing.Dict) -> typing.List[typing.Tuple[int, float]]:
+    def evaluate_model(self, best_so_far: typing.Optional[float],
+                       configuration: typing.Dict) -> typing.List[typing.Tuple[int, float]]:
         """
         Does a staged evaluation of the model, on increasing anchor sizes.
         Determines after the evaluation at every anchor an optimistic
@@ -57,4 +78,35 @@ class LCCV(VerticalModelEvaluator):
         performance.
         """
 
-        raise NotImplemented()
+        anchorSize = 16
+        anchorSequence = []
+        x = pd.DataFrame(configuration, index=[0])
+
+        if best_so_far == None:
+            x["anchor_size"] = self.final_anchor
+            best_so_far = self.surrogate_model.predict(x)
+        
+
+        while anchorSize < self.final_anchor:
+
+            if anchorSize > (self.final_anchor * 0.75):
+                anchorSize = self.final_anchor
+
+            x["anchor_size"] = anchorSize
+            predPerf = self.surrogate_model.predict(x)
+
+            if len(anchorSequence) > 0:
+                optExt = self.optimistic_extrapolation(anchorSequence[-1][0],
+                                                       anchorSequence[-1][1],
+                                                       anchorSize, predPerf,
+                                                       self.final_anchor)
+                
+                #print(optExt, best_so_far)
+                if optExt >= best_so_far:
+                    break
+
+            anchorSequence.append((anchorSize, predPerf))
+            anchorSize = anchorSize * 2
+
+        #print(anchorSequence)
+        return anchorSequence
