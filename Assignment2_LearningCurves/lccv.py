@@ -52,9 +52,10 @@ class LCCV(VerticalModelEvaluator):
         
         # LCCV calculation: infimum of Ct - (sT - st)(supremum of Ct-1 - infimum of Ct /
         # st-1 - st)
-        sub = ((max(C_i[0]) - min(C_i[1])) / (previous_anchor - current_anchor))
-        optPerf = min(C_i[1]) - (target_anchor - current_anchor) * sub
+        sub = ((C_i[0][1] - C_i[1][0]) / (previous_anchor - current_anchor))
+        optPerf = C_i[1][0] - (target_anchor - current_anchor) * sub
         
+        # print("C_i:", C_i)
         # print("sd:", sd)
         # print(optPerf)
         return optPerf
