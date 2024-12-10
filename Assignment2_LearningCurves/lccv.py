@@ -42,9 +42,15 @@ class LCCV(VerticalModelEvaluator):
         #       abs(previous_performance - mean)**2) / 2
 
         # Confidence intervals for the performance
-        C_i = st.norm.interval([previous_performance, current_performance],
-                               loc=mean,
-                               scale=sd)
+        prevC_i = st.norm.interval(previous_performance,
+                                    loc=mean,
+                                    scale=sd)
+
+        C_i = st.norm.interval(current_performance,
+                                loc=mean,
+                                scale=sd)
+
+        #print(prevC_i, C_i)
         # C_i = (np.pi * sd) * np.exp(-0.5*((-mean)/sd)**2)
 
         # supC_t1 = previous_performance + C_i
@@ -52,12 +58,12 @@ class LCCV(VerticalModelEvaluator):
         
         # LCCV calculation: infimum of Ct - (sT - st)(supremum of Ct-1 - infimum of Ct /
         # st-1 - st)
-        sub = ((C_i[0][1] - C_i[1][0]) / (previous_anchor - current_anchor))
-        optPerf = C_i[1][0] - (target_anchor - current_anchor) * sub
+        sub = ((prevC_i[1] - C_i[0]) / (previous_performance - current_performance))
+        optPerf = C_i[0] - (target_anchor - current_anchor) * sub
         
         # print("C_i:", C_i)
         # print("sd:", sd)
-        # print(optPerf)
+        # print("optPerf:", optPerf)
         return optPerf
     
 
@@ -88,7 +94,7 @@ class LCCV(VerticalModelEvaluator):
             best_so_far = self.surrogate_model.predict(x)
         
 
-        while anchorSize < self.final_anchor:
+        while anchorSize <= self.final_anchor:
 
             if anchorSize > (self.final_anchor * 0.75):
                 anchorSize = self.final_anchor
@@ -97,6 +103,11 @@ class LCCV(VerticalModelEvaluator):
             predPerf = self.surrogate_model.predict(x)
 
             if len(anchorSequence) > 0:
+
+                # Predicted performance >= 1 to avoid division by zero
+                if predPerf == 0:
+                    predPerf = 1
+
                 optExt = self.optimistic_extrapolation(anchorSequence[-1][0],
                                                        anchorSequence[-1][1],
                                                        anchorSize, predPerf,
@@ -107,7 +118,7 @@ class LCCV(VerticalModelEvaluator):
                     break
 
             anchorSequence.append((anchorSize, predPerf))
-            anchorSize = anchorSize * 2
+            anchorSize = anchorSize * 1.5
 
         #print(anchorSequence)
         return anchorSequence
