@@ -75,26 +75,6 @@ class LCCV(VerticalModelEvaluator):
             # print("No trend observed; returning current performance.")
             return current_performance
 
-<<<<<<< Updated upstream
-        # Confidence intervals for the performance
-        prevC_t = st.norm.interval(previous_performance,
-                                    loc=mean,
-                                    scale=sd)
-
-        C_t = st.norm.interval(current_performance,
-                                loc=mean,
-                                scale=sd)
-        
-        # LCCV calculation: Ct - (sT - st)(Ct-1 - Ct /
-        # st-1 - st)
-        sub = ((prevC_t[1] - C_t[0]) / ((previous_performance - current_performance) + 0.00000000000000000001))
-        optPerf = C_t[0] - (target_anchor - current_anchor) * sub
-        
-        # print("C_i:", C_i)
-        # print("sd:", sd)
-        # print("optPerf:", optPerf)
-        return optPerf
-=======
         # Calculate the slope of the performance trend
         slope = (current_performance - previous_performance) / (current_anchor - previous_anchor)
         # print(f"slope: {slope}")
@@ -108,7 +88,6 @@ class LCCV(VerticalModelEvaluator):
         # print(f"extrapolated_performance after clamping: {extrapolated_performance}")
 
         return extrapolated_performance
->>>>>>> Stashed changes
     
 
     def evaluate_model(self, anchor_sizes: list, best_so_far: typing.Optional[float], configuration: typing.Dict) -> typing.List[typing.Tuple[int, float]]:
@@ -120,14 +99,9 @@ class LCCV(VerticalModelEvaluator):
         :return: A list of tuples, each containing the anchor size and the estimated performance.
         """
 
-<<<<<<< Updated upstream
-        anchorSize = 8
-        anchorSequence = []
-=======
         # Predefined array of anchor sizes
         # anchor_sizes = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
         anchor_sequence = []
->>>>>>> Stashed changes
         x = pd.DataFrame(configuration, index=[0])
 
         # If best_so_far is None, initialize it with the performance at the largest anchor size
@@ -135,11 +109,6 @@ class LCCV(VerticalModelEvaluator):
             x["anchor_size"] = self.final_anchor
             best_so_far = self.surrogate_model.predict(x, anchor_sizes[-1])
 
-<<<<<<< Updated upstream
-        while anchorSize < self.final_anchor+1:
-
-            anchorSize = anchorSize * 1.5
-=======
         for current_anchor in anchor_sizes:
             # Add current anchor size to the configuration
             x["anchor_size"] = current_anchor
@@ -147,7 +116,6 @@ class LCCV(VerticalModelEvaluator):
 
             # Log the anchor size and performance
             anchor_sequence.append((current_anchor, pred_perf))
->>>>>>> Stashed changes
 
             # If we have at least two anchor points, perform extrapolation
             if len(anchor_sequence) > 1:
@@ -161,11 +129,4 @@ class LCCV(VerticalModelEvaluator):
                 if opt_ext >= best_so_far:                    
                     break
 
-<<<<<<< Updated upstream
-            anchorSequence.append((anchorSize, predPerf))
-
-        #print(anchorSequence)
-        return anchorSequence
-=======
         return anchor_sequence
->>>>>>> Stashed changes
