@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from lccv import LCCV
 from surrogate_model import SurrogateModel
-from IPL import IPLModelEvaluator  # Import your IPLModelEvaluator
+from IPL import IPL
 
 def plot_results_schedules(results_dict, save_path):
     """
@@ -58,10 +58,10 @@ def plot_run_logs(logs, discarded_logs, anchor_sizes):
     plt.title("Configurations: Evaluated vs Discarded")
     plt.show()
 
-def parse_args():
+def parse_args(dataset):
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_space_file', type=str, default='lcdb_config_space_knn.json')
-    parser.add_argument('--configurations_performance_file', type=str, default='config_performances_dataset-1457.csv')
+    parser.add_argument('--configurations_performance_file', type=str, default=f'config_performances_dataset-{dataset}.csv')
     parser.add_argument('--minimal_anchor', type=int, default=256)
     parser.add_argument('--max_anchor_size', type=int, default=16000)
     parser.add_argument('--num_iterations', type=int, default=500)
@@ -80,9 +80,9 @@ def run(args, anchor_sizes, schedule_length, plot_run=True):
     # Define the learning curve schedule
     fixed_schedule = anchor_sizes[:schedule_length]
     final_max_anchor = anchor_sizes[-1]
-    print(final_max_anchor)
+    
     # Initialize the IPLModelEvaluator
-    evaluator = IPLModelEvaluator(
+    evaluator = IPL(
         fixed_schedule=fixed_schedule,
         final_anchor=final_max_anchor,
         best_seen_performance=float('inf'),        
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     for length in schedule_lengths:
         aggregated_results = []  # To store multiple runs
         for _ in range(15):  # Run each schedule length 10 times
-            result = run(parse_args(), anchor_sizes=anchor_dict[DATASET], schedule_length=length, plot_run=False)
+            result = run(parse_args(DATASET), anchor_sizes=anchor_dict[DATASET], schedule_length=length, plot_run=False)
             aggregated_results.append(result)
         
         # Average results per iteration

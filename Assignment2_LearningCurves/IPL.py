@@ -2,7 +2,7 @@ import numpy as np
 from vertical_model_evaluator import VerticalModelEvaluator
 from scipy.optimize import curve_fit
 
-class IPLModelEvaluator(VerticalModelEvaluator):
+class IPL(VerticalModelEvaluator):
     def __init__(self, fixed_schedule, final_anchor, best_seen_performance):
         """
         Initialize the IPLModelEvaluator.
@@ -19,6 +19,7 @@ class IPLModelEvaluator(VerticalModelEvaluator):
         self.max_anchor = final_anchor
         self.best_seen_performance = best_seen_performance
         self.performance_over_iterations = []
+        self.last_seen_prediction = None
 
     def fit_ipl(self, sizes, losses):
         """
@@ -62,11 +63,11 @@ class IPLModelEvaluator(VerticalModelEvaluator):
         """        
         # Fit the IPL model to the observed learning curve
         params = self.fit_ipl(self.fixed_schedule, performances)
-        print(params)
 
         predicted_performance = self.predict_performance(self.max_anchor, params)
         print(f"max_anchor: {self.max_anchor}, predicted_performance: {predicted_performance}, best_seen_performance: {self.best_seen_performance}")
         self.performance_over_iterations.append(self.best_seen_performance)
+        self.last_seen_prediction = predicted_performance
         if predicted_performance > self.best_seen_performance:
             return False
         else: 
