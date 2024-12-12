@@ -42,24 +42,18 @@ class LCCV(VerticalModelEvaluator):
         #       abs(previous_performance - mean)**2) / 2
 
         # Confidence intervals for the performance
-        prevC_i = st.norm.interval(previous_performance,
+        prevC_t = st.norm.interval(previous_performance,
                                     loc=mean,
                                     scale=sd)
 
-        C_i = st.norm.interval(current_performance,
+        C_t = st.norm.interval(current_performance,
                                 loc=mean,
                                 scale=sd)
-
-        #print(prevC_i, C_i)
-        # C_i = (np.pi * sd) * np.exp(-0.5*((-mean)/sd)**2)
-
-        # supC_t1 = previous_performance + C_i
-        # infC_t = current_performance - C_i
         
-        # LCCV calculation: infimum of Ct - (sT - st)(supremum of Ct-1 - infimum of Ct /
+        # LCCV calculation: Ct - (sT - st)(Ct-1 - Ct /
         # st-1 - st)
-        sub = ((prevC_i[1] - C_i[0]) / (previous_performance - current_performance))
-        optPerf = C_i[0] - (target_anchor - current_anchor) * sub
+        sub = ((prevC_t[1] - C_t[0]) / ((previous_performance - current_performance) + 0.00000000000000000001))
+        optPerf = C_t[0] - (target_anchor - current_anchor) * sub
         
         # print("C_i:", C_i)
         # print("sd:", sd)
@@ -85,7 +79,7 @@ class LCCV(VerticalModelEvaluator):
         performance.
         """
 
-        anchorSize = 16
+        anchorSize = 8
         anchorSequence = []
         x = pd.DataFrame(configuration, index=[0])
 
@@ -94,10 +88,9 @@ class LCCV(VerticalModelEvaluator):
             best_so_far = self.surrogate_model.predict(x)
         
 
-        while anchorSize <= self.final_anchor:
+        while anchorSize < self.final_anchor+1:
 
-            if anchorSize > (self.final_anchor * 0.75):
-                anchorSize = self.final_anchor
+            anchorSize = anchorSize * 1.5
 
             x["anchor_size"] = anchorSize
             predPerf = self.surrogate_model.predict(x)
@@ -118,7 +111,6 @@ class LCCV(VerticalModelEvaluator):
                     break
 
             anchorSequence.append((anchorSize, predPerf))
-            anchorSize = anchorSize * 1.5
 
         #print(anchorSequence)
         return anchorSequence
