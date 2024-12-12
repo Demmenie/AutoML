@@ -116,6 +116,7 @@ def experiment_1(args, anchor_sizes, schedule_length, num_iterations):
         result_ipl = []
         for anchor_size in fixed_schedule:
             simulated_performance = surrogate_model.predict(theta_new, anchor_size)
+            ipl.num_evals+=1
             result_ipl.append((anchor_size, simulated_performance))        
         y_data = [r[1] for r in result_ipl]
         ipl.evaluate_configuration(performances=y_data)

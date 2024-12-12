@@ -20,38 +20,10 @@ class LCCV(VerticalModelEvaluator):
         self.final_anchor = final_anchor
         self.last_seen_opt_ext = None  # Initialize to None for tracking later
         self.best_opt_ext_seen = 1 #float('inf')  # For best optimistic extrapolation tracking
-
-    # @staticmethod
-    # def optimistic_extrapolation(
-    #     previous_anchor: int, previous_performance: float, 
-    #     current_anchor: int, current_performance: float, target_anchor: int
-    # ) -> float:
-    #     """
-    #     Perform optimistic extrapolation of the performance.
-
-    #     :param previous_anchor: Anchor size of the previous stage.
-    #     :param previous_performance: Performance at the previous anchor size.
-    #     :param current_anchor: Anchor size of the current stage.
-    #     :param current_performance: Performance at the current anchor size.
-    #     :param target_anchor: Anchor size for extrapolation.
-    #     :return: The extrapolated performance.
-    #     """
-    #     mean = (previous_performance + current_performance) / 2
-    #     sd = np.std([previous_performance, current_performance])
-
-    #     if sd == 0.0:
-    #         sd = 1e-10  # Prevent division by zero
-
-    #     prevC_i = st.norm.interval(0.95, loc=mean, scale=sd)
-    #     C_i = st.norm.interval(0.95, loc=mean, scale=sd)
-
-    #     sub = ((prevC_i[1] - C_i[0]) / (previous_performance - current_performance + 1e-10))
-    #     optPerf = C_i[0] - (target_anchor - current_anchor) * sub
-
-    #     return optPerf
+        self.cumulative_best_performance = []
     
     @staticmethod
-    def optimistic_extrapolation_2(
+    def optimistic_extrapolation(
             previous_anchor: int, previous_performance: float, 
             current_anchor: int, current_performance: float, target_anchor: int
         ) -> float:
@@ -98,7 +70,6 @@ class LCCV(VerticalModelEvaluator):
         :param configuration: A dictionary indicating the configuration
         :return: A list of tuples, each containing the anchor size and the estimated performance.
         """
-
         # Predefined array of anchor sizes
         # anchor_sizes = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
         anchor_sequence = []
@@ -106,13 +77,13 @@ class LCCV(VerticalModelEvaluator):
 
         # If best_so_far is None, initialize it with the performance at the largest anchor size
         if best_so_far is None:
-            x["anchor_size"] = self.final_anchor
-            best_so_far = self.surrogate_model.predict(x, anchor_sizes[-1])
+            best_so_far = self.surrogate_model.predict(x, anchor_sizes[0])
+            self.cumulative_best_performance.extend([best_so_far] * anchor_sizes[0])
 
         for current_anchor in anchor_sizes:
             # Add current anchor size to the configuration
-            x["anchor_size"] = current_anchor
-            pred_perf = self.surrogate_model.predict(x)
+            pred_perf = self.surrogate_model.predict(x, current_anchor)
+            self.cumulative_best_performance.extend([best_so_far] * current_anchor)
 
             # Log the anchor size and performance
             anchor_sequence.append((current_anchor, pred_perf))
@@ -122,9 +93,8 @@ class LCCV(VerticalModelEvaluator):
                 previous_anchor, previous_perf = anchor_sequence[-2]  # Get the last two points
                 current_anchor, current_perf = anchor_sequence[-1]
 
-                opt_ext = self.optimistic_extrapolation_2(previous_anchor, previous_perf, current_anchor, current_perf, anchor_sizes[-1])
-                print(opt_ext)
-                print(best_so_far)
+                opt_ext = self.optimistic_extrapolation(previous_anchor, previous_perf, current_anchor, current_perf, anchor_sizes[-1])
+
                 # Stop evaluation if extrapolated performance is worse than the best seen so far
                 if opt_ext >= best_so_far:                    
                     break

@@ -15,7 +15,7 @@ def parse_args(dataset):
     parser.add_argument('--minimal_anchor', type=int, default=16)
     parser.add_argument('--max_anchor_size', type=int, default=16000)
     parser.add_argument('--num_iterations', type=int, default=50)
-
+    
     return parser.parse_args()
 
 

@@ -20,6 +20,7 @@ class IPL(VerticalModelEvaluator):
         self.best_seen_performance = best_seen_performance
         self.performance_over_iterations = []
         self.last_seen_prediction = None
+        self.num_evals = 0
 
     def fit_ipl(self, sizes, losses):
         """
@@ -65,7 +66,7 @@ class IPL(VerticalModelEvaluator):
         params = self.fit_ipl(self.fixed_schedule, performances)
 
         predicted_performance = self.predict_performance(self.max_anchor, params)
-        print(f"max_anchor: {self.max_anchor}, predicted_performance: {predicted_performance}, best_seen_performance: {self.best_seen_performance}")
+        # print(f"max_anchor: {self.max_anchor}, predicted_performance: {predicted_performance}, best_seen_performance: {self.best_seen_performance}")
         self.performance_over_iterations.append(self.best_seen_performance)
         self.last_seen_prediction = predicted_performance
         if predicted_performance > self.best_seen_performance:
