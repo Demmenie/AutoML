@@ -1,5 +1,3 @@
-# ssh -o ProxyCommand="ssh -g -L 8888:localhost:8888 s4451856@sshgw.leidenuniv.nl -q -W U0065091:22" -g -L 8888:localhost:8888 s4451856@U0065091
-
 import argparse
 import ConfigSpace
 import logging
@@ -38,7 +36,7 @@ def run(args):
             best_so_far = final_result
 
         logs.append(result[-1])
-        print(final_result)
+        
         x_values = [i[0] for i in result]
         y_values = [i[1] for i in result]
         plt.plot(x_values, y_values, "-o")
