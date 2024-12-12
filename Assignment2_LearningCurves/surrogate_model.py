@@ -75,7 +75,8 @@ class SurrogateModel:
         self.model.fit(x, y)
 
 
-    def predict(self, theta_new, anchor_size):
+    # def predict(self, theta_new, anchor_size):
+    def predict(self, theta_new, anchor_size=None):
         """
         Predicts the performance of a given configuration theta_new at a specified anchor_size.
 
@@ -84,8 +85,9 @@ class SurrogateModel:
         :return: float, the predicted performance of theta_new.
         """
 
-        # Add anchor_size to the configuration
-        theta_new['anchor_size'] = anchor_size
+        if anchor_size:
+            # Add anchor_size to the configuration
+            theta_new['anchor_size'] = anchor_size
 
         # Prepare the input data
         x = pd.DataFrame(theta_new, columns=self.df.columns[:-1], index=[0])
