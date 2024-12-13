@@ -30,7 +30,7 @@ def run(args, anchor_sizes):
     logs = []
     
     for idx in range(50):
-    # for idx in range(args.num_iterations):
+        # for idx in range(args.num_iterations):
         theta_new = dict(config_space.sample_configuration())
         result = lccv.evaluate_model(anchor_sizes, best_so_far, theta_new)
         final_result = result[-1][1]
@@ -41,8 +41,19 @@ def run(args, anchor_sizes):
         
         x_values = [i[0] for i in result]
         y_values = [i[1] for i in result]
-        plt.plot(x_values, y_values, "-o")
+        
+        # Check if the result reaches the final anchor size
+        if x_values[-1] == anchor_sizes[-1]:
+            plt.plot(x_values, y_values, "o-", alpha=0.8)  # Dotted line
+        else:
+            plt.plot(x_values, y_values, "x--", alpha=0.4)  # Solid line
+            
+    # Custom legend
+    plt.plot([], [], "x--", color='black', label="Discarded Config")  # Dotted line for discarded
+    plt.plot([], [], "o-", color='black', label="Evaluated Config")   # Solid line for evaluated
 
+    # Add legend to distinguish iterations
+    plt.legend()
     anchorFinishes = {}
     for log in logs:
         if log[0] not in anchorFinishes.keys():
@@ -62,7 +73,7 @@ if __name__ == '__main__':
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     DATASET = 1457
-    anchor_dict = {6: [512, 1024, 2048, 4096, 8192, 16000],
+    anchor_dict = {6: [256, 512, 1024, 2048, 4096, 8192, 16000],
                    11: [16, 32, 64, 128, 256, 512, 1024],
                    1457: [64, 128, 256, 512, 1024, 2048]} 
     
