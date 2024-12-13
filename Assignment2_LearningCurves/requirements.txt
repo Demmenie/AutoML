@@ -1,5 +1,6 @@
 ConfigSpace
 matplotlib
 numpy
+scipy
 scikit-learn
 pandas
