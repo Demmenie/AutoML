@@ -1,6 +1,7 @@
 import argparse
 import ConfigSpace
 import logging
+import random
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -65,7 +66,8 @@ def run_ipl(args, anchor_sizes, schedule_length):
         for anchor_size in fixed_schedule:
             simulated_performance = surrogate_model.predict(theta_new, anchor_size)
             if best_so_far == float('inf'):
-                best_so_far = simulated_performance
+                best_so_far = simulated_performance            
+                
             for _ in range(anchor_size):
                 cumulative_best_performance.append(best_so_far)
             result.append((anchor_size, simulated_performance))
@@ -100,13 +102,14 @@ def run_random_search(args, anchor_sizes):
         theta_new = dict(config_space.sample_configuration())
 
         # Predict performance for the largest anchor size
-        predicted_performance = surrogate_model.predict(theta_new, anchor_sizes[6])
+        random_anchor_size = int(random.uniform(16, 8098))
+        predicted_performance = surrogate_model.predict(theta_new, random_anchor_size)
         total_evals += 1  # Increment total evaluations
         if not best_so_far:
             best_so_far = predicted_performance
         # Update the best performance seen so far
         best_so_far = min(best_so_far, predicted_performance)
-        for _ in range(anchor_sizes[-1]):
+        for _ in range(random_anchor_size):
             cumulative_best_performance.append(best_so_far)
 
     return cumulative_best_performance
@@ -114,23 +117,27 @@ def run_random_search(args, anchor_sizes):
 
 def plot_comparison(lccv_best, ipl_best, rs_best, model_labels, save_path):
     """Plot the cumulative best performances for LCCV and IPL."""
-    plt.figure(figsize=(12, 8))
+    # epsilon = 1e-10
+    # lccv_best = [max(x, epsilon) for x in lccv_best]
+    # ipl_best = [max(x, epsilon) for x in ipl_best]
+    # rs_best = [max(x, epsilon) for x in rs_best]
 
+    plt.figure(figsize=(12, 8))
     # Plot LCCV cumulative best
     plt.plot(range(len(lccv_best)), lccv_best, label=model_labels[0], alpha=0.8)
-
     # Plot IPL cumulative best
     plt.plot(range(len(ipl_best)), ipl_best, label=model_labels[1], alpha=0.8)
-
     # Plot RS cumulative best
     plt.plot(range(len(rs_best)), rs_best, label=model_labels[2], alpha=0.8)
 
-    plt.xlabel("Number of Evaluations")
-    plt.xscale("log")
+    plt.xlabel("Evaluations on Full Dataset")
     plt.yscale('log')
-    plt.ylabel("Best Loss So Far")
-    plt.title("Cumulative Best Performance Over Evaluations")
-    plt.xticks()
+    plt.xscale('log')
+    plt.ylabel("Performance")
+    plt.title("Best Performance Over Evaluations")
+    plt.xlim(1, len(rs_best)-3) 
+    plt.ylim(0, 0.6)
+    plt.yticks([0.1, 0.6], labels=[0.1, 0.6])
     plt.legend()
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')  # Save with high resolution
@@ -150,6 +157,9 @@ def pad_to_equal_length(runs):
         padded_runs.append(run + [run[-1]] * (max_length - len(run)))  # Pad with last value
     return np.array(padded_runs)
 
+def every_nth_element(array, n):
+    array.insert(0, 1)
+    return array[::n] 
 
 if __name__ == '__main__':
     root = logging.getLogger()
@@ -161,9 +171,9 @@ if __name__ == '__main__':
     anchor_dict_IPL = {6: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000],
                         11: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000],
                         1457: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000]} 
-    schedule_length = 6  
+    schedule_length = 4  
     anchor_sizes_LCCV = anchor_dict_LCCV[DATASET]
-    num_runs = 1  # Number of runs to average over
+    num_runs = 10 # Number of runs to average over
     anchor_sizes_IPL = anchor_dict_IPL[DATASET]
 
     # Parse arguments
@@ -179,15 +189,15 @@ if __name__ == '__main__':
 
         # Run LCCV
         lccv_best_performance = run_lccv(args, anchor_sizes_LCCV)        
-        lccv_runs.append(lccv_best_performance)
+        lccv_runs.append(every_nth_element(lccv_best_performance, anchor_sizes_LCCV[-1]))
 
         # Run IPL
         ipl_best_performance = run_ipl(args, anchor_sizes_IPL, schedule_length)
-        ipl_runs.append(ipl_best_performance)
+        ipl_runs.append(every_nth_element(ipl_best_performance, anchor_sizes_IPL[-1]))
 
         # Run RS
         rs_best_performance = run_random_search(args, anchor_sizes_IPL)
-        rs_runs.append(rs_best_performance)
+        rs_runs.append(every_nth_element(rs_best_performance, anchor_sizes_IPL[-1]))
 
     # Pad results to equal lengths
     lccv_runs_padded = pad_to_equal_length(lccv_runs)
@@ -204,6 +214,6 @@ if __name__ == '__main__':
         lccv_avg,
         ipl_avg,
         rs_avg,
-        model_labels=["LCCV", f"IPL (Schedule Length {schedule_length})", "Random Search"],
+        model_labels=["LCCV", f"IPL (Schedule Length {6})", "Random Search"],
         save_path="images\comparison_plot_evaluation.png"
     )

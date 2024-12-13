@@ -76,9 +76,9 @@ class LCCV(VerticalModelEvaluator):
         x = pd.DataFrame(configuration, index=[0])
 
         # If best_so_far is None, initialize it with the performance at the largest anchor size
-        if best_so_far is None:
-            best_so_far = self.surrogate_model.predict(x, anchor_sizes[0])
-            self.cumulative_best_performance.extend([best_so_far] * anchor_sizes[0])
+        if best_so_far == None:
+            best_so_far = self.surrogate_model.predict(x, anchor_sizes[-1])
+            self.cumulative_best_performance.extend([best_so_far] * anchor_sizes[-1])
 
         for current_anchor in anchor_sizes:
             # Add current anchor size to the configuration

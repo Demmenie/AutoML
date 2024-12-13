@@ -49,8 +49,9 @@ def plot_results_schedules_evaluations(results_dict, num_evals_dict, save_path=N
 
     # Label the axes
     plt.xlabel("Number of Evaluations")
+    plt.yscale('log')
     plt.ylabel("Performance")
-    plt.title("Performance for Different Fixed Schedule Lengths over Evaluations")
+    plt.title("Performance for Different Fixed Schedule Lengths over Evaluations on Dataset: 6")
 
     # Add legend
     plt.legend()
@@ -93,7 +94,7 @@ def parse_args(dataset):
     parser.add_argument('--configurations_performance_file', type=str, default=f'config_performances_dataset-{dataset}.csv')
     parser.add_argument('--minimal_anchor', type=int, default=256)
     parser.add_argument('--max_anchor_size', type=int, default=16000)
-    parser.add_argument('--num_iterations', type=int, default=10)
+    parser.add_argument('--num_iterations', type=int, default=50)
 
     return parser.parse_args()
 
@@ -148,16 +149,16 @@ def run(args, anchor_sizes, schedule_length, plot_run=True):
             ipl.best_seen_performance = real_performance
         logs.append(best_configs_results)
 
-        if plot_run:
-            plot_run_logs(logs, discarded_logs, anchor_sizes)
+    if plot_run:
+        plot_run_logs(logs, discarded_logs, anchor_sizes)
 
     return ipl.performance_over_iterations, ipl.num_evals
 
 if __name__ == "__main__":
-    DATASET = 1457
-    anchor_dict = {6: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000],
-                   11: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000],
-                   1457: [16, 32, 64, 128, 256, 512, 1024, 2048, 8192, 16000]}  
+    DATASET = 6
+    anchor_dict = {6: [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16000],
+                   11: [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16000],
+                   1457: [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16000]}  
     
     root = logging.getLogger()
     root.setLevel(logging.INFO)
@@ -170,23 +171,29 @@ if __name__ == "__main__":
 
     for length in schedule_lengths:
         aggregated_results = []  # To store multiple runs
-        for idx in range(1):  # Run each schedule length 10 times
+        for idx in range(1):  # Run each schedule length 15 times
             print(f"iteration {idx}")
             result, num_evals = run(parse_args(DATASET), anchor_sizes=anchor_dict[DATASET], schedule_length=length, plot_run=False)
             aggregated_results.append(result)
             if result[-1] < best_result:
                 best_result = result[-1]
         
-        # print(f"Best result for {length} schedule size: {best_result}, with {num_evals} surrogate model evaluations")
-
         # Average results per iteration
         averaged_results = [sum(x) / len(x) for x in zip(*aggregated_results)]
         results_dict[length] = averaged_results
 
+        # Ensure num_evals matches the length of averaged_results
         num_evals = [sum(anchor_dict[DATASET][:i+1]) for i in range(len(anchor_dict[DATASET]))]
-        num_evals_dict[length] = num_evals[:len(results_dict[length])]
+        num_evals_dict[length] = num_evals[:len(averaged_results)]  # Match lengths
+
+    # Debug: Check lengths
+    for schedule_length in results_dict:
+        print(f"Schedule Length {schedule_length}:")
+        print(f"  Results Length: {len(results_dict[schedule_length])}")
+        print(f"  Evaluations Length: {len(num_evals_dict[schedule_length])}")
 
     # Plot the results over iterations
-    plot_results_schedules_iterations(results_dict, save_path="images\schedule_length_plot_iterations.png")
+    # plot_results_schedules_iterations(results_dict, save_path="images/schedule_length_plot_iterations.png")
     # Plot the results over evaluations
-    plot_results_schedules_evaluations(results_dict, num_evals_dict, save_path="images\schedule_length_plot_evaluations.png")
+    # plot_results_schedules_evaluations(results_dict, num_evals_dict, save_path="images/schedule_length_plot_evaluations.png")
+

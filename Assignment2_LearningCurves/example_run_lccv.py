@@ -61,9 +61,9 @@ def run(args, anchor_sizes):
 if __name__ == '__main__':
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    DATASET = 11
-    anchor_dict = {6: [128, 256, 512, 1024, 2048, 4096, 8192, 16000],
-                   11: [16, 32, 64, 128, 256, 512],
+    DATASET = 1457
+    anchor_dict = {6: [512, 1024, 2048, 4096, 8192, 16000],
+                   11: [16, 32, 64, 128, 256, 512, 1024],
                    1457: [64, 128, 256, 512, 1024, 2048]} 
     
     run(parse_args(DATASET), anchor_dict[DATASET])
